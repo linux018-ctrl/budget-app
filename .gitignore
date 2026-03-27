@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Virtual Environment
+.venv/
+venv/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Local config (contains user-specific paths/URLs)
+cloud_config.json
+
+# Data files (user's private financial data)
+# Uncomment the line below if you DON'T want to include budget in repo
+# data/*.xlsx
+
+# Streamlit
+.streamlit/secrets.toml

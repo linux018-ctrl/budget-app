@@ -1,0 +1,29 @@
+{
+  "2026-03": [
+    {"id": "demo0001", "date": "2026-03-01", "type": "income", "category": "💼 薪資", "amount": 52000, "note": "3月薪水", "created_at": "2026-03-01T09:00:00"},
+    {"id": "demo0002", "date": "2026-03-01", "type": "expense", "category": "🏠 居住", "amount": 14000, "note": "房租", "created_at": "2026-03-01T10:00:00"},
+    {"id": "demo0003", "date": "2026-03-02", "type": "expense", "category": "🍜 飲食", "amount": 120, "note": "早餐 - 蛋餅", "created_at": "2026-03-02T08:00:00"},
+    {"id": "demo0004", "date": "2026-03-02", "type": "expense", "category": "🍜 飲食", "amount": 180, "note": "午餐 - 牛肉麵", "created_at": "2026-03-02T12:00:00"},
+    {"id": "demo0005", "date": "2026-03-02", "type": "expense", "category": "🚗 交通", "amount": 66, "note": "捷運", "created_at": "2026-03-02T18:00:00"},
+    {"id": "demo0006", "date": "2026-03-03", "type": "expense", "category": "🍜 飲食", "amount": 150, "note": "午餐 - 便當", "created_at": "2026-03-03T12:00:00"},
+    {"id": "demo0007", "date": "2026-03-03", "type": "expense", "category": "🍜 飲食", "amount": 250, "note": "晚餐 - 火鍋", "created_at": "2026-03-03T19:00:00"},
+    {"id": "demo0008", "date": "2026-03-04", "type": "expense", "category": "📱 通訊", "amount": 499, "note": "手機月租費", "created_at": "2026-03-04T10:00:00"},
+    {"id": "demo0009", "date": "2026-03-05", "type": "expense", "category": "🍜 飲食", "amount": 85, "note": "早餐 - 咖啡+三明治", "created_at": "2026-03-05T08:00:00"},
+    {"id": "demo0010", "date": "2026-03-05", "type": "expense", "category": "🍜 飲食", "amount": 160, "note": "午餐 - 排骨飯", "created_at": "2026-03-05T12:00:00"},
+    {"id": "demo0011", "date": "2026-03-06", "type": "expense", "category": "🎮 娛樂", "amount": 350, "note": "電影票 x2", "created_at": "2026-03-06T14:00:00"},
+    {"id": "demo0012", "date": "2026-03-06", "type": "expense", "category": "🍜 飲食", "amount": 580, "note": "聚餐 - 日式料理", "created_at": "2026-03-06T19:00:00"},
+    {"id": "demo0013", "date": "2026-03-07", "type": "expense", "category": "🛒 日用品", "amount": 650, "note": "洗衣精、衛生紙、沐浴乳", "created_at": "2026-03-07T15:00:00"},
+    {"id": "demo0014", "date": "2026-03-08", "type": "expense", "category": "🍜 飲食", "amount": 200, "note": "午餐 - 拉麵", "created_at": "2026-03-08T12:00:00"},
+    {"id": "demo0015", "date": "2026-03-10", "type": "expense", "category": "🚗 交通", "amount": 250, "note": "加油", "created_at": "2026-03-10T10:00:00"},
+    {"id": "demo0016", "date": "2026-03-10", "type": "income", "category": "💰 獎金", "amount": 3000, "note": "績效獎金", "created_at": "2026-03-10T11:00:00"},
+    {"id": "demo0017", "date": "2026-03-12", "type": "expense", "category": "👕 服飾", "amount": 1200, "note": "春季上衣", "created_at": "2026-03-12T16:00:00"},
+    {"id": "demo0018", "date": "2026-03-14", "type": "expense", "category": "💝 人情", "amount": 1000, "note": "同事生日禮金", "created_at": "2026-03-14T12:00:00"},
+    {"id": "demo0019", "date": "2026-03-15", "type": "expense", "category": "💊 醫療", "amount": 450, "note": "看牙齒", "created_at": "2026-03-15T14:00:00"},
+    {"id": "demo0020", "date": "2026-03-15", "type": "expense", "category": "🍜 飲食", "amount": 320, "note": "下午茶 - 甜點", "created_at": "2026-03-15T16:00:00"},
+    {"id": "demo0021", "date": "2026-03-18", "type": "expense", "category": "🍜 飲食", "amount": 95, "note": "早餐", "created_at": "2026-03-18T08:00:00"},
+    {"id": "demo0022", "date": "2026-03-20", "type": "expense", "category": "🚗 交通", "amount": 132, "note": "公車月票加值", "created_at": "2026-03-20T09:00:00"},
+    {"id": "demo0023", "date": "2026-03-22", "type": "expense", "category": "🎮 娛樂", "amount": 990, "note": "串流平台年費分攤", "created_at": "2026-03-22T20:00:00"},
+    {"id": "demo0024", "date": "2026-03-25", "type": "expense", "category": "🍜 飲食", "amount": 450, "note": "週末聚餐", "created_at": "2026-03-25T18:00:00"},
+    {"id": "demo0025", "date": "2026-03-26", "type": "expense", "category": "📦 其他支出", "amount": 300, "note": "文具用品", "created_at": "2026-03-26T10:00:00"}
+  ]
+}

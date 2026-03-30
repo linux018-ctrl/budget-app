@@ -296,3 +296,114 @@ def create_sub_category_treemap(budget_data_categories: list, expense_by_sub: di
         margin=dict(l=10, r=10, t=60, b=10)
     )
     return fig
+
+
+# ─── 年度圖表 ─────────────────────────────────────────────
+
+def create_yearly_income_expense_chart(monthly_data: list) -> go.Figure:
+    """
+    年度月收支趨勢圖（折線+柱狀混合圖）
+    monthly_data: [{"month": 1, "income": ..., "expense": ..., "balance": ..., "savings": ...}, ...]
+    """
+    months = [f"{d['month']}月" for d in monthly_data]
+    incomes = [d["income"] for d in monthly_data]
+    expenses = [d["expense"] for d in monthly_data]
+    balances = [d["balance"] for d in monthly_data]
+
+    fig = go.Figure()
+    fig.add_trace(go.Bar(name="收入", x=months, y=incomes,
+                         marker_color="#38ef7d", opacity=0.8))
+    fig.add_trace(go.Bar(name="支出（不含儲蓄）", x=months, y=expenses,
+                         marker_color="#f45c43", opacity=0.8))
+    fig.add_trace(go.Scatter(name="結餘", x=months, y=balances,
+                             mode="lines+markers+text",
+                             text=[f"${b:,.0f}" for b in balances],
+                             textposition="top center",
+                             textfont=dict(size=10),
+                             line=dict(color="#667eea", width=3),
+                             marker=dict(size=8)))
+
+    fig.update_layout(
+        title="📊 月度收支趨勢",
+        barmode="group",
+        height=400,
+        xaxis_title="月份",
+        yaxis_title="金額",
+        yaxis_tickformat="$,.0f",
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5),
+        margin=dict(l=60, r=20, t=60, b=40)
+    )
+    return fig
+
+
+def create_yearly_savings_chart(monthly_data: list, savings_budget: float) -> go.Figure:
+    """
+    年度儲蓄達成率圖（柱狀圖+目標線）
+    """
+    months = [f"{d['month']}月" for d in monthly_data]
+    savings = [d["savings"] for d in monthly_data]
+    rates = [d["savings_rate"] for d in monthly_data]
+
+    colors = ["#38ef7d" if r >= 100 else "#4facfe" if r >= 60 else "#f45c43" for r in rates]
+
+    fig = go.Figure()
+    fig.add_trace(go.Bar(
+        name="實際儲蓄", x=months, y=savings,
+        marker_color=colors, opacity=0.85,
+        text=[f"{r:.0f}%" for r in rates],
+        textposition="outside",
+        textfont=dict(size=11, color="#333")
+    ))
+    fig.add_hline(y=savings_budget, line_dash="dash", line_color="#e74c3c",
+                  annotation_text=f"目標 ${savings_budget:,.0f}",
+                  annotation_position="top right")
+
+    fig.update_layout(
+        title="🏦 月度儲蓄達成",
+        height=400,
+        xaxis_title="月份",
+        yaxis_title="金額",
+        yaxis_tickformat="$,.0f",
+        margin=dict(l=60, r=20, t=60, b=40)
+    )
+    return fig
+
+
+def create_yearly_cumulative_chart(monthly_data: list) -> go.Figure:
+    """
+    年度累積收支趨勢圖（面積圖）
+    """
+    months = [f"{d['month']}月" for d in monthly_data]
+    cum_income = []
+    cum_expense = []
+    cum_savings = []
+    ci, ce, cs = 0, 0, 0
+    for d in monthly_data:
+        ci += d["income"]
+        ce += d["expense"]
+        cs += d["savings"]
+        cum_income.append(ci)
+        cum_expense.append(ce)
+        cum_savings.append(cs)
+
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(name="累積收入", x=months, y=cum_income,
+                             fill="tozeroy", fillcolor="rgba(56,239,125,0.2)",
+                             line=dict(color="#38ef7d", width=2)))
+    fig.add_trace(go.Scatter(name="累積支出（不含儲蓄）", x=months, y=cum_expense,
+                             fill="tozeroy", fillcolor="rgba(244,92,67,0.2)",
+                             line=dict(color="#f45c43", width=2)))
+    fig.add_trace(go.Scatter(name="累積儲蓄", x=months, y=cum_savings,
+                             fill="tozeroy", fillcolor="rgba(79,172,254,0.2)",
+                             line=dict(color="#4facfe", width=2)))
+
+    fig.update_layout(
+        title="📈 年度累積趨勢",
+        height=400,
+        xaxis_title="月份",
+        yaxis_title="累積金額",
+        yaxis_tickformat="$,.0f",
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5),
+        margin=dict(l=60, r=20, t=60, b=40)
+    )
+    return fig

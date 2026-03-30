@@ -21,7 +21,9 @@ from utils.excel_importer import (
 from utils.charts import (
     create_budget_vs_actual_chart, create_expense_pie_chart,
     create_daily_expense_chart, create_budget_usage_gauges,
-    create_expense_type_pie, create_sub_category_treemap
+    create_expense_type_pie, create_sub_category_treemap,
+    create_yearly_income_expense_chart, create_yearly_savings_chart,
+    create_yearly_cumulative_chart
 )
 from utils.cloud_sync import (
     load_cloud_config, save_cloud_config,
@@ -423,8 +425,8 @@ with st.sidebar:
 
 
 # ─── 主要頁面標籤 ──────────────────────────────────────────
-tab1, tab2, tab3, tab4 = st.tabs([
-    "📊 月報總覽", "📝 記帳明細", "💰 預算總表", "📈 分析報表"
+tab1, tab2, tab3, tab4, tab5 = st.tabs([
+    "📊 月報總覽", "📝 記帳明細", "💰 預算總表", "📈 分析報表", "📅 年度總覽"
 ])
 
 
@@ -866,6 +868,181 @@ with tab4:
 
             fig_account = create_expense_pie_chart(account_totals, title="🏦 各帳戶支出佔比")
             st.plotly_chart(fig_account, width="stretch")
+
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# TAB 5: 年度總覽
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+with tab5:
+    st.header(f"📅 {selected_year} 年度總覽")
+
+    if not all_records or not budget_data:
+        st.info("📭 尚無資料可供年度分析")
+    else:
+        # ── 計算各月份摘要 ──
+        savings_budget = summary['total_savings_budget'] if summary else 0
+        budget_no_savings = summary['budget_total_no_savings'] if summary else 0
+
+        monthly_data = []
+        for m in range(1, 13):
+            m_records = [r for r in all_records
+                         if int(r['date'][:4]) == selected_year
+                         and int(r['date'][5:7]) == m]
+            if not m_records:
+                monthly_data.append({
+                    "month": m, "income": 0, "expense_total": 0,
+                    "expense": 0, "balance": 0, "savings": 0,
+                    "savings_rate": 0, "budget_remaining": 0,
+                    "record_count": 0
+                })
+                continue
+
+            m_summary = get_cwmoney_monthly_summary(m_records, budget_data)
+            monthly_data.append({
+                "month": m,
+                "income": m_summary['total_income'],
+                "expense_total": m_summary['total_expense'],
+                "expense": m_summary['expense_no_savings'],
+                "balance": m_summary['total_income'] - m_summary['expense_no_savings'],
+                "savings": m_summary['actual_savings_expense'],
+                "savings_rate": (m_summary['actual_savings_expense'] / savings_budget * 100) if savings_budget > 0 else 0,
+                "budget_remaining": m_summary['budget_remaining'],
+                "record_count": m_summary['record_count']
+            })
+
+        # 只顯示有資料的月份
+        active_months = [d for d in monthly_data if d['record_count'] > 0]
+
+        if not active_months:
+            st.info(f"📭 {selected_year} 年尚無記帳紀錄")
+        else:
+            # ── 年度累計卡片 ──
+            yr_income = sum(d['income'] for d in active_months)
+            yr_expense = sum(d['expense'] for d in active_months)
+            yr_expense_total = sum(d['expense_total'] for d in active_months)
+            yr_savings = sum(d['savings'] for d in active_months)
+            yr_balance = yr_income - yr_expense
+            yr_savings_target = savings_budget * len(active_months)
+            yr_savings_rate = (yr_savings / yr_savings_target * 100) if yr_savings_target > 0 else 0
+
+            yc1, yc2, yc3, yc4, yc5 = st.columns(5)
+            with yc1:
+                st.markdown(f"""
+                <div class="metric-card income">
+                    <h3>💵 年度總收入</h3>
+                    <h1>${yr_income:,.0f}</h1>
+                    <p style="margin:4px 0 0 0;font-size:12px;opacity:0.8;">共 {len(active_months)} 個月</p>
+                </div>
+                """, unsafe_allow_html=True)
+            with yc2:
+                st.markdown(f"""
+                <div class="metric-card expense">
+                    <h3>💸 年度總支出</h3>
+                    <h1>${yr_expense:,.0f}</h1>
+                    <p style="margin:4px 0 0 0;font-size:12px;opacity:0.8;">不含儲蓄</p>
+                </div>
+                """, unsafe_allow_html=True)
+            with yc3:
+                yr_bal_class = "income" if yr_balance >= 0 else "expense"
+                yr_bal_icon = "📈" if yr_balance >= 0 else "📉"
+                st.markdown(f"""
+                <div class="metric-card {yr_bal_class}">
+                    <h3>{yr_bal_icon} 年度結餘</h3>
+                    <h1>${yr_balance:,.0f}</h1>
+                    <p style="margin:4px 0 0 0;font-size:12px;opacity:0.8;">收入-支出(不含儲蓄)</p>
+                </div>
+                """, unsafe_allow_html=True)
+            with yc4:
+                st.markdown(f"""
+                <div class="metric-card savings">
+                    <h3>🏦 年度總儲蓄</h3>
+                    <h1>${yr_savings:,.0f}</h1>
+                    <p style="margin:4px 0 0 0;font-size:12px;opacity:0.8;">目標 ${yr_savings_target:,.0f}</p>
+                </div>
+                """, unsafe_allow_html=True)
+            with yc5:
+                if yr_savings_rate >= 100:
+                    yr_sav_class = "income"
+                    yr_sav_icon = "🏆"
+                elif yr_savings_rate >= 60:
+                    yr_sav_class = "savings"
+                    yr_sav_icon = "🏦"
+                else:
+                    yr_sav_class = "expense"
+                    yr_sav_icon = "⚠️"
+                st.markdown(f"""
+                <div class="metric-card {yr_sav_class}">
+                    <h3>{yr_sav_icon} 年度儲蓄達成率</h3>
+                    <h1>{yr_savings_rate:.0f}%</h1>
+                    <p style="margin:4px 0 0 0;font-size:12px;opacity:0.8;">平均 ${yr_savings / len(active_months):,.0f}/月</p>
+                </div>
+                """, unsafe_allow_html=True)
+
+            st.markdown("<br>", unsafe_allow_html=True)
+
+            # ── 年度趨勢圖表 ──
+            col_chart1, col_chart2 = st.columns(2)
+            with col_chart1:
+                fig_trend = create_yearly_income_expense_chart(active_months)
+                st.plotly_chart(fig_trend, use_container_width=True)
+            with col_chart2:
+                fig_savings = create_yearly_savings_chart(active_months, savings_budget)
+                st.plotly_chart(fig_savings, use_container_width=True)
+
+            # ── 年度累積趨勢 ──
+            fig_cum = create_yearly_cumulative_chart(active_months)
+            st.plotly_chart(fig_cum, use_container_width=True)
+
+            # ── 月度明細表 ──
+            st.subheader("📋 月度收支明細")
+            table_rows = []
+            for d in active_months:
+                budget_status = "✅ 未超支" if d['budget_remaining'] >= 0 else "🔴 超支"
+                table_rows.append({
+                    "月份": f"{d['month']}月",
+                    "收入": d['income'],
+                    "支出(不含儲蓄)": d['expense'],
+                    "結餘": d['balance'],
+                    "儲蓄": d['savings'],
+                    "儲蓄達成率": f"{d['savings_rate']:.0f}%",
+                    "預算剩餘": d['budget_remaining'],
+                    "狀態": budget_status
+                })
+
+            # 合計列
+            table_rows.append({
+                "月份": "📊 合計",
+                "收入": yr_income,
+                "支出(不含儲蓄)": yr_expense,
+                "結餘": yr_balance,
+                "儲蓄": yr_savings,
+                "儲蓄達成率": f"{yr_savings_rate:.0f}%",
+                "預算剩餘": sum(d['budget_remaining'] for d in active_months),
+                "狀態": ""
+            })
+
+            df_yearly = pd.DataFrame(table_rows)
+            st.dataframe(df_yearly, width="stretch", hide_index=True,
+                        column_config={
+                            "收入": st.column_config.NumberColumn(format="$%d"),
+                            "支出(不含儲蓄)": st.column_config.NumberColumn(format="$%d"),
+                            "結餘": st.column_config.NumberColumn(format="$%d"),
+                            "儲蓄": st.column_config.NumberColumn(format="$%d"),
+                            "預算剩餘": st.column_config.NumberColumn(format="$%d"),
+                        })
+
+            # ── 月平均統計 ──
+            n = len(active_months)
+            st.subheader("📊 月平均統計")
+            avg1, avg2, avg3, avg4 = st.columns(4)
+            with avg1:
+                st.metric("平均月收入", f"${yr_income / n:,.0f}")
+            with avg2:
+                st.metric("平均月支出", f"${yr_expense / n:,.0f}")
+            with avg3:
+                st.metric("平均月結餘", f"${yr_balance / n:,.0f}")
+            with avg4:
+                st.metric("平均月儲蓄", f"${yr_savings / n:,.0f}")
 
 
 # ─── Footer ──────────────────────────────────────────────

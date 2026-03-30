@@ -468,11 +468,18 @@ with tab1:
 
         with c4:
             remaining = summary['budget_remaining']
-            rem_class = "income" if remaining >= 0 else "expense"
+            if remaining >= 0:
+                rem_class = "income"
+                rem_label = "🎯 預算剩餘"
+                rem_value = f"${remaining:,.0f}"
+            else:
+                rem_class = "expense"
+                rem_label = "🚨 預算超支"
+                rem_value = f"-${abs(remaining):,.0f}"
             st.markdown(f"""
             <div class="metric-card {rem_class}">
-                <h3>🎯 預算剩餘</h3>
-                <h1>${remaining:,.0f}</h1>
+                <h3>{rem_label}</h3>
+                <h1>{rem_value}</h1>
             </div>
             """, unsafe_allow_html=True)
 

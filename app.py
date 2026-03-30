@@ -878,7 +878,7 @@ with tab4:
 # TAB 5: 年度總覽
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 with tab5:
-    st.header(f"📅 {selected_year} 年度總覽")
+    st.header(f"📅 {selected_year} 年度總覽（1～{selected_month}月）")
 
     if not all_records or not budget_data:
         st.info("📭 尚無資料可供年度分析")
@@ -888,7 +888,7 @@ with tab5:
         budget_no_savings = summary['budget_total_no_savings'] if summary else 0
 
         monthly_data = []
-        for m in range(1, 13):
+        for m in range(1, selected_month + 1):
             m_records = [r for r in all_records
                          if int(r['date'][:4]) == selected_year
                          and int(r['date'][5:7]) == m]

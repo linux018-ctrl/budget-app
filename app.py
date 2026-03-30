@@ -370,11 +370,15 @@ with st.sidebar:
                         df, file_name = get_latest_csv_dataframe(cred_bytes, folder_id)
                         file_type = 'csv'
                     except Exception:
-                        df, file_name = get_latest_xml_dataframe(cred_bytes, folder_id, year=selected_year, month=selected_month)
+                        # XML：不傳 year/month，取得全部資料
+                        df, file_name = get_latest_xml_dataframe(cred_bytes, folder_id)
                         file_type = 'xml'
-                records = parse_cwmoney_dataframe(df)
-                all_records = records
-                drive_status = f"✅ 已載入 {file_name}（{file_type.upper()}），共 {len(records)} 筆紀錄"
+                all_records = parse_cwmoney_dataframe(df)
+                # 篩選當月紀錄
+                records = [r for r in all_records
+                           if int(r['date'][:4]) == selected_year
+                           and int(r['date'][5:7]) == selected_month]
+                drive_status = f"✅ 已載入 {file_name}（{file_type.upper()}），共 {len(all_records)} 筆紀錄（本月 {len(records)} 筆）"
                 source_status = f"🔄 Google Drive: {file_name}"
                 st.success(drive_status)
             except Exception as e:

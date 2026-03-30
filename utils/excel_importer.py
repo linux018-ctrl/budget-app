@@ -729,15 +729,22 @@ def get_cwmoney_monthly_summary(records: list, budget_data: dict) -> dict:
     )
     budget_total = sum(cat["budget"] for cat in budget_data["categories"])
 
+    # 實際儲蓄支出金額（從 cwmoney 記錄中歸類到儲蓄的部分）
+    actual_savings_expense = expense_type_breakdown.get("儲蓄支出", 0)
+    # 不含儲蓄的實際支出
+    expense_no_savings = total_expense - actual_savings_expense
+
     return {
         "total_income": total_income,
         "total_expense": total_expense,
         "total_savings_budget": total_savings_budget,
+        "actual_savings_expense": actual_savings_expense,
+        "expense_no_savings": expense_no_savings,
         "balance": total_income - total_expense,
         "budget_total": budget_total,
         "budget_total_no_savings": budget_total_no_savings,
-        "budget_remaining": budget_total_no_savings - total_expense,
-        "is_over_budget": total_expense > budget_total_no_savings,
+        "budget_remaining": budget_total_no_savings - expense_no_savings,
+        "is_over_budget": expense_no_savings > budget_total_no_savings,
         "expense_by_project": expense_by_project,
         "expense_by_main_category": expense_by_main,
         "expense_by_sub_category": expense_by_sub,

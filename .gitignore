@@ -29,3 +29,10 @@ cloud_config.json
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Google Drive credentials (sensitive)
+credentials.json
+drive_config.json
+
+# Executables
+*.exe

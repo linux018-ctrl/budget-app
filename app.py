@@ -6,6 +6,8 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime, date
 import calendar
+
+import json
 import os
 
 from utils.excel_importer import (
@@ -25,6 +27,7 @@ from utils.cloud_sync import (
     load_cloud_config, save_cloud_config,
     update_last_sync_time, validate_google_sheets_url
 )
+from utils.drive_sync import get_latest_csv_dataframe, get_latest_xml_dataframe
 
 # ─── 頁面設定 ──────────────────────────────────────────────
 st.set_page_config(
@@ -189,7 +192,7 @@ with st.sidebar:
     st.markdown("#### 📂 資料來源")
     data_source = st.radio(
         "選擇記帳資料來源",
-        ["📁 本機檔案", "📤 上傳檔案", "☁️ Google Sheets"],
+        ["📁 本機檔案", "📤 上傳檔案", "☁️ Google Sheets", "🔄 Google Drive 自動同步"],
         index=0,
         key="data_source",
         horizontal=True,
@@ -304,6 +307,78 @@ with st.sidebar:
                 st.warning(msg)
         else:
             st.info("☁️ 請輸入 Google Sheets 連結以啟用線上同步")
+
+
+    # ── Google Drive 自動同步模式 ──
+    elif data_source == "🔄 Google Drive 自動同步":
+        st.markdown("#### Google Drive 自動同步設定")
+        st.info("1. 本地端：上傳 credentials.json 並輸入 Folder ID，會自動記住。\n2. 雲端部署：請將 Service Account JSON 內容貼到 .streamlit/secrets.toml 的 gdrive_credentials 欄位，folder_id 也寫入 gdrive_folder_id 欄位，App 會自動偵測。\n\n如兩者皆有，優先使用 secrets。")
+
+        # 1. 先檢查 st.secrets（雲端部署推薦）
+        cred_bytes = None
+        folder_id = ""
+        has_secrets = False
+        try:
+            has_secrets = "gdrive_credentials" in st.secrets and "gdrive_folder_id" in st.secrets
+        except Exception:
+            pass
+        if has_secrets:
+            import io
+            cred_json = st.secrets["gdrive_credentials"]
+            if isinstance(cred_json, str):
+                cred_bytes = cred_json.encode("utf-8")
+            else:
+                # dict 轉 json string
+                cred_bytes = json.dumps(dict(cred_json)).encode("utf-8")
+            folder_id = st.secrets["gdrive_folder_id"]
+            st.success("已自動載入雲端 secrets 設定，不需手動上傳/輸入")
+        else:
+            # 2. fallback 本地 config/上傳
+            DRIVE_CONFIG_PATH = os.path.join(os.path.dirname(__file__), "drive_config.json")
+            drive_config = {"folder_id": "", "credentials_path": "credentials.json"}
+            if os.path.exists(DRIVE_CONFIG_PATH):
+                try:
+                    with open(DRIVE_CONFIG_PATH, "r", encoding="utf-8") as f:
+                        drive_config = json.load(f)
+                except Exception:
+                    pass
+            cred_file = st.file_uploader("上傳 credentials.json", type=["json"], key="drive_cred")
+            folder_id = st.text_input("Google Drive Folder ID", value=drive_config.get("folder_id", ""), key="drive_folder_id", help="Google Drive 資料夾網址中 /folders/ 後面的那串字母")
+            cred_path = drive_config.get("credentials_path", "credentials.json")
+            if cred_file:
+                cred_bytes = cred_file.read()
+                with open(os.path.join(os.path.dirname(__file__), cred_path), "wb") as f:
+                    f.write(cred_bytes)
+            elif os.path.exists(os.path.join(os.path.dirname(__file__), cred_path)):
+                with open(os.path.join(os.path.dirname(__file__), cred_path), "rb") as f:
+                    cred_bytes = f.read()
+            if (cred_file or folder_id) and folder_id:
+                try:
+                    with open(DRIVE_CONFIG_PATH, "w", encoding="utf-8") as f:
+                        json.dump({"folder_id": folder_id, "credentials_path": cred_path}, f, ensure_ascii=False, indent=2)
+                except Exception:
+                    pass
+
+        drive_status = ""
+        if cred_bytes and folder_id:
+            try:
+                with st.spinner("🔄 正在從 Google Drive 讀取最新檔案..."):
+                    # 先嘗試 CSV，找不到再 fallback XML
+                    try:
+                        df, file_name = get_latest_csv_dataframe(cred_bytes, folder_id)
+                        file_type = 'csv'
+                    except Exception:
+                        df, file_name = get_latest_xml_dataframe(cred_bytes, folder_id, year=selected_year, month=selected_month)
+                        file_type = 'xml'
+                records = parse_cwmoney_dataframe(df)
+                all_records = records
+                drive_status = f"✅ 已載入 {file_name}（{file_type.upper()}），共 {len(records)} 筆紀錄"
+                source_status = f"🔄 Google Drive: {file_name}"
+                st.success(drive_status)
+            except Exception as e:
+                st.error(f"❌ Google Drive 讀取失敗：{e}")
+        else:
+            st.info("請上傳 credentials.json 並輸入 Folder ID，或已自動載入本地/雲端設定")
 
     if budget_data:
         budget_name = os.path.basename(BUDGET_EXCEL_PATH) if os.path.exists(BUDGET_EXCEL_PATH) else "已上傳的預算表"

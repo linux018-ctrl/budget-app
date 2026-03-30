@@ -193,7 +193,7 @@ with st.sidebar:
     data_source = st.radio(
         "選擇記帳資料來源",
         ["📁 本機檔案", "📤 上傳檔案", "☁️ Google Sheets", "🔄 Google Drive 自動同步"],
-        index=0,
+        index=3,
         key="data_source",
         horizontal=True,
         help="選擇如何取得 cwmoney 記帳資料"

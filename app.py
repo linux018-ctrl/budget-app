@@ -484,10 +484,28 @@ with tab1:
             """, unsafe_allow_html=True)
 
         with c5:
+            savings_budget = summary['total_savings_budget']
+            actual_savings = summary['actual_savings_expense']
+            savings_rate = (actual_savings / savings_budget * 100) if savings_budget > 0 else 0
+            if savings_rate >= 100:
+                sav_class = "income"
+                sav_icon = "🏆"
+                sav_label = "儲蓄達成率"
+            elif savings_rate >= 60:
+                sav_class = "savings"
+                sav_icon = "🏦"
+                sav_label = "儲蓄達成率"
+            else:
+                sav_class = "expense"
+                sav_icon = "⚠️"
+                sav_label = "儲蓄達成率"
             st.markdown(f"""
-            <div class="metric-card savings">
-                <h3>🏦 儲蓄預算</h3>
-                <h1>${summary['total_savings_budget']:,.0f}</h1>
+            <div class="metric-card {sav_class}">
+                <h3>{sav_icon} {sav_label}</h3>
+                <h1>{savings_rate:.0f}%</h1>
+                <p style="margin:4px 0 0 0;font-size:13px;opacity:0.85;">
+                    ${actual_savings:,.0f} / ${savings_budget:,.0f}
+                </p>
             </div>
             """, unsafe_allow_html=True)
 

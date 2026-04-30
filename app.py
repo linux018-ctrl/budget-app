@@ -122,9 +122,15 @@ st.markdown("""
 
 
 # ─── 載入資料（快取）─────────────────────────────────────────
+def _get_budget_file_mtime() -> float:
+    """取得預算檔案的修改時間，用於快取失效判斷"""
+    if os.path.exists(BUDGET_EXCEL_PATH):
+        return os.path.getmtime(BUDGET_EXCEL_PATH)
+    return 0.0
+
 @st.cache_data
-def load_budget():
-    """載入預算表（快取）"""
+def load_budget(_file_mtime: float = 0.0):
+    """載入預算表（快取，檔案更新時自動重新載入）"""
     if os.path.exists(BUDGET_EXCEL_PATH):
         return load_budget_from_excel()
     return None
@@ -171,7 +177,7 @@ def calc_cumulative_balance(all_records: list, up_to_year: int, up_to_month: int
                 total -= r["amount"]
     return total
 
-budget_data = load_budget()
+budget_data = load_budget(_file_mtime=_get_budget_file_mtime())
 
 # ─── 側邊欄 ──────────────────────────────────────────────
 with st.sidebar:

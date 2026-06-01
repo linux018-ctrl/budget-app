@@ -48,10 +48,17 @@ def get_latest_csv_dataframe(credentials_json_bytes, folder_id):
     files = list_files_with_ext_in_folder(service, folder_id, '.csv')
     if not files:
         raise FileNotFoundError('找不到任何 CSV 檔案')
-    latest_file = files[0]
-    csv_bytes = download_drive_file(service, latest_file['id'])
-    df = pd.read_csv(io.BytesIO(csv_bytes), encoding='utf-8-sig')
-    return df, latest_file['name']
+    last_error = None
+    for f in files:
+        try:
+            csv_bytes = download_drive_file(service, f['id'])
+            df = pd.read_csv(io.BytesIO(csv_bytes), encoding='utf-8-sig')
+            return df, f['name']
+        except Exception as e:
+            last_error = e
+            print(f"[Google Drive WARNING] CSV 解析失敗，跳過：{f.get('name')} | {e}")
+
+    raise ValueError(f"所有 CSV 檔案都無法解析。最後錯誤：{last_error}")
 
 def get_latest_xml_dataframe(credentials_json_bytes, folder_id, year=None, month=None):
     from .xml_importer import parse_cwmoney_xml
@@ -59,7 +66,14 @@ def get_latest_xml_dataframe(credentials_json_bytes, folder_id, year=None, month
     files = list_files_with_ext_in_folder(service, folder_id, '.xml')
     if not files:
         raise FileNotFoundError('找不到任何 XML 檔案')
-    latest_file = files[0]
-    xml_bytes = download_drive_file(service, latest_file['id'])
-    df = parse_cwmoney_xml(xml_bytes, year=year, month=month)
-    return df, latest_file['name']
+    last_error = None
+    for f in files:
+        try:
+            xml_bytes = download_drive_file(service, f['id'])
+            df = parse_cwmoney_xml(xml_bytes, year=year, month=month)
+            return df, f['name']
+        except Exception as e:
+            last_error = e
+            print(f"[Google Drive WARNING] XML 解析失敗，跳過：{f.get('name')} | {e}")
+
+    raise ValueError(f"所有 XML 檔案都無法解析。最後錯誤：{last_error}")

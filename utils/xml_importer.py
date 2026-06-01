@@ -1,14 +1,90 @@
 import io
+import re
 import xml.etree.ElementTree as ET
 import pandas as pd
 from datetime import datetime
+
+
+def inspect_and_repair_xml_bytes(xml_bytes):
+    """
+    檢查並修復 XML bytes，回傳 (repaired_bytes, report)
+
+    report 範例:
+    {
+        "original_valid": False,
+        "repaired_valid": True,
+        "original_error": "...",
+        "repaired_error": "",
+        "replaced_amp_count": 3,
+        "removed_control_count": 0
+    }
+    """
+    report = {
+        "original_valid": False,
+        "repaired_valid": False,
+        "original_error": "",
+        "repaired_error": "",
+        "replaced_amp_count": 0,
+        "removed_control_count": 0,
+    }
+
+    # 先測試原始 XML 是否有效
+    try:
+        ET.fromstring(xml_bytes)
+        report["original_valid"] = True
+    except ET.ParseError as e:
+        report["original_error"] = str(e)
+
+    text = xml_bytes.decode('utf-8-sig', errors='ignore')
+
+    control_pattern = r'[\x00-\x08\x0B\x0C\x0E-\x1F]'
+    amp_pattern = r'&(?!#?\w+;)'
+
+    report["removed_control_count"] = len(re.findall(control_pattern, text))
+    report["replaced_amp_count"] = len(re.findall(amp_pattern, text))
+
+    repaired_text = re.sub(control_pattern, '', text)
+    repaired_text = re.sub(amp_pattern, '&amp;', repaired_text)
+    repaired_bytes = repaired_text.encode('utf-8')
+
+    # 再測試修復後 XML 是否有效
+    try:
+        ET.fromstring(repaired_bytes)
+        report["repaired_valid"] = True
+    except ET.ParseError as e:
+        report["repaired_error"] = str(e)
+
+    return repaired_bytes, report
+
+
+def _parse_xml_safely(xml_bytes):
+    """
+    容錯 XML 解析：
+    1) 移除非法控制字元
+    2) 修正常見未轉義的 '&'
+    """
+    # 先嘗試原始解析（最快）
+    try:
+        return ET.fromstring(xml_bytes)
+    except Exception:
+        pass
+
+    text = xml_bytes.decode('utf-8-sig', errors='ignore')
+    # 移除 XML 1.0 不允許的控制字元（保留 \t \n \r）
+    text = re.sub(r'[\x00-\x08\x0B\x0C\x0E-\x1F]', '', text)
+    # 修正常見的未轉義 '&'（例如備註中有 A&B）
+    text = re.sub(r'&(?!#?\w+;)', '&amp;', text)
+
+    return ET.fromstring(text)
 
 def parse_cwmoney_xml(xml_bytes, year=None, month=None):
     """
     解析 CWMoney 匯出的 XML 檔案，回傳 DataFrame
     """
-    tree = ET.parse(io.BytesIO(xml_bytes))
-    root = tree.getroot()
+    try:
+        root = _parse_xml_safely(xml_bytes)
+    except ET.ParseError as e:
+        raise ValueError(f"XML 格式錯誤，無法解析：{e}")
 
     # 嘗試判斷是否為 SpreadsheetML (Excel XML)
     ns = {

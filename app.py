@@ -30,6 +30,7 @@ from utils.cloud_sync import (
     update_last_sync_time, validate_google_sheets_url
 )
 from utils.drive_sync import get_latest_csv_dataframe, get_latest_xml_dataframe
+from utils.xml_importer import inspect_and_repair_xml_bytes
 
 # ─── 頁面設定 ──────────────────────────────────────────────
 st.set_page_config(
@@ -321,6 +322,54 @@ with st.sidebar:
     elif data_source == "🔄 Google Drive 自動同步":
         st.markdown("#### Google Drive 自動同步設定")
         st.info("1. 本地端：上傳 credentials.json 並輸入 Folder ID，會自動記住。\n2. 雲端部署：請將 Service Account JSON 內容貼到 .streamlit/secrets.toml 的 gdrive_credentials 欄位，folder_id 也寫入 gdrive_folder_id 欄位，App 會自動偵測。\n\n如兩者皆有，優先使用 secrets。")
+
+        # ── XML 預檢/修復工具（上傳前）──
+        with st.expander("🩹 上傳前自動檢查並修復 XML"):
+            st.caption("先檢查 CWMoney XML 是否有不合法字元（例如未轉義的 &），可直接下載修復版再上傳到 Google Drive。")
+            xml_check_file = st.file_uploader(
+                "選擇要檢查的 XML 檔案",
+                type=["xml"],
+                key="xml_precheck_upload"
+            )
+
+            if xml_check_file and st.button("🧪 檢查並修復 XML", key="xml_precheck_btn"):
+                xml_bytes = xml_check_file.read()
+                repaired_bytes, report = inspect_and_repair_xml_bytes(xml_bytes)
+                st.session_state["xml_repair_result"] = {
+                    "filename": xml_check_file.name,
+                    "repaired_bytes": repaired_bytes,
+                    "report": report,
+                }
+
+            xml_repair_result = st.session_state.get("xml_repair_result")
+            if xml_repair_result:
+                report = xml_repair_result["report"]
+                if report["original_valid"]:
+                    st.success("✅ 原始 XML 格式正常，不需要修復")
+                else:
+                    st.warning(f"⚠️ 原始 XML 格式異常：{report['original_error']}")
+
+                st.caption(
+                    f"修復內容：未轉義 & 取代 {report['replaced_amp_count']} 次，"
+                    f"非法控制字元移除 {report['removed_control_count']} 次"
+                )
+
+                if report["repaired_valid"]:
+                    original_name = xml_repair_result["filename"]
+                    if original_name.lower().endswith(".xml"):
+                        fixed_name = original_name[:-4] + "_fixed.xml"
+                    else:
+                        fixed_name = original_name + "_fixed.xml"
+
+                    st.download_button(
+                        "⬇️ 下載修復後 XML",
+                        data=xml_repair_result["repaired_bytes"],
+                        file_name=fixed_name,
+                        mime="application/xml",
+                        key="xml_repair_download_btn"
+                    )
+                else:
+                    st.error(f"❌ 自動修復後仍無法解析：{report['repaired_error']}")
 
         # 1. 先檢查 st.secrets（雲端部署推薦）
         cred_bytes = None
